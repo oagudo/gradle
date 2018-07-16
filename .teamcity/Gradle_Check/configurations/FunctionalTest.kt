@@ -23,9 +23,10 @@ class FunctionalTest(model: CIBuildModel, testCoverage: TestCoverage, subProject
             "coverageJvmVendor" to testCoverage.vendor.name,
             "coverageJvmVersion" to testCoverage.testJvmVersion.name
     )
+    val noDaemon = noDaemonParam(testCoverage, subProject)
     applyDefaults(model, this, testTask, notQuick = !quickTest, os = testCoverage.os,
             extraParameters = (
-                    listOf(""""-PtestJavaHome=%${testCoverage.os}.${testCoverage.testJvmVersion}.${testCoverage.vendor}.64bit%"""")
+                    listOf(""""-PtestJavaHome=%${testCoverage.os}.${testCoverage.testJvmVersion}.${testCoverage.vendor}.64bit%"""", noDaemon)
                             + buildScanTags.map { buildScanTag(it) }
                             + buildScanValues.map { buildScanCustomValue(it.key, it.value) }
                     ).joinToString(separator = " "),
@@ -38,3 +39,10 @@ class FunctionalTest(model: CIBuildModel, testCoverage: TestCoverage, subProject
         }
     }
 })
+
+
+// A workaround for https://github.com/gradle/gradle-private/issues/1352
+// Temporarily use --no-daemon for tasks which need to run :docs:userguideAsciidoc
+private fun noDaemonParam(testCoverage: TestCoverage, subProject: String): String {
+    return if(testCoverage.testType == TestType.quick && (subProject == "toolingApi" && subProject == "wrapper")) "--no-daemon" else ""
+}
